@@ -220,24 +220,24 @@ class Widget {
 
     // Queries
 
-    const tokenIcons          = root.querySelector('.ff-widget-token-icons') as HTMLDivElement
-    const title               = root.querySelector('.ff-widget-title') as HTMLDivElement
-    const timer               = root.querySelector('.ff-widget-timer') as HTMLDivElement
-    const rewardsTokenSymbol  = root.querySelector('.ff-rewards-token-name') as HTMLDivElement
-    const stakingTokenSymbol  = root.querySelector('.ff-staking-token-name') as HTMLDivElement
-    const apyValue            = root.querySelector('.ff-widget-apy') as HTMLDivElement
-    const aprValue            = root.querySelector('.ff-widget-apr') as HTMLDivElement
-    const depositTokenName    = root.querySelector('.ff-widget-deposit-token-name') as HTMLDivElement
-    const earnTokenName       = root.querySelector('.ff-widget-earn-token-name') as HTMLDivElement
-    const earnSection         = root.querySelector('.ff-widget-earn-section') as HTMLDivElement
-    const stakeSection        = root.querySelector('.ff-widget-stake-section') as HTMLDivElement
-    const earnedAmount        = root.querySelector('.ff-widget-earned-amount') as HTMLDivElement
-    const stakedAmount        = root.querySelector('.ff-widget-staked-amount') as HTMLDivElement
-    const unlockButton        = root.querySelector('.ff-widget-unlock-button') as HTMLButtonElement
-    const approveButton       = root.querySelector('.ff-widget-approve-button') as HTMLButtonElement
-    const depositButton       = root.querySelector('.ff-widget-deposit-button') as HTMLButtonElement
-    const withdrawButton      = root.querySelector('.ff-widget-withdraw-button') as HTMLButtonElement
-    const harvestButton       = root.querySelector('.ff-widget-harvest-button') as HTMLButtonElement
+    const tokenIcons = root.querySelector('.ff-widget-token-icons') as HTMLDivElement
+    const title = root.querySelector('.ff-widget-title') as HTMLDivElement
+    const timer = root.querySelector('.ff-widget-timer') as HTMLDivElement
+    const rewardsTokenSymbol = root.querySelector('.ff-rewards-token-name') as HTMLDivElement
+    const stakingTokenSymbol = root.querySelector('.ff-staking-token-name') as HTMLDivElement
+    const apyValue = root.querySelector('.ff-widget-apy') as HTMLDivElement
+    const aprValue = root.querySelector('.ff-widget-apr') as HTMLDivElement
+    const depositTokenName = root.querySelector('.ff-widget-deposit-token-name') as HTMLDivElement
+    const earnTokenName = root.querySelector('.ff-widget-earn-token-name') as HTMLDivElement
+    const earnSection = root.querySelector('.ff-widget-earn-section') as HTMLDivElement
+    const stakeSection = root.querySelector('.ff-widget-stake-section') as HTMLDivElement
+    const earnedAmount = root.querySelector('.ff-widget-earned-amount') as HTMLDivElement
+    const stakedAmount = root.querySelector('.ff-widget-staked-amount') as HTMLDivElement
+    const unlockButton = root.querySelector('.ff-widget-unlock-button') as HTMLButtonElement
+    const approveButton = root.querySelector('.ff-widget-approve-button') as HTMLButtonElement
+    const depositButton = root.querySelector('.ff-widget-deposit-button') as HTMLButtonElement
+    const withdrawButton = root.querySelector('.ff-widget-withdraw-button') as HTMLButtonElement
+    const harvestButton = root.querySelector('.ff-widget-harvest-button') as HTMLButtonElement
 
     this.elems = {
       root,
@@ -435,18 +435,19 @@ class Widget {
     }
 
     // APY
-
-    this.elems.apyValue.innerHTML = `${apy}%`
+    console.log(apy, "NEW apy")
+    if (apy != 0)
+      this.elems.apyValue.innerHTML = `${apy / 100}%`
     // if (this.elems.apyValue) {
-      // if (typeof this.opts.apy === 'function') {
-      //   this.opts.apy()
-      //     .then((value) => {
-      //       this.elems.apyValue.innerHTML = `${value}%`
-      //     })
-      // }
-      // else {
-      //   this.elems.apyValue.innerHTML = `${this.opts.apy}%`
-      // }
+    // if (typeof this.opts.apy === 'function') {
+    //   this.opts.apy()
+    //     .then((value) => {
+    //       this.elems.apyValue.innerHTML = `${value}%`
+    //     })
+    // }
+    // else {
+    //   this.elems.apyValue.innerHTML = `${this.opts.apy}%`
+    // }
     // }
 
     // APR

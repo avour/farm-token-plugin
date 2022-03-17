@@ -52,6 +52,7 @@
   "dependencies": {
     "@metamask/detect-provider": "^1.2.0",
     "@openzeppelin/contracts": "^3.4.0",
-    "solc": "^0.6.8"
+    "solc": "0.8.2"
   }
 }
+

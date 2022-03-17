@@ -860,13 +860,21 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
         // uint256 remaingReward = rewardRate.mul(lastTimeRewardApplicable());
         // uint256 remaingReward = rewardRate.mul(lastTimeRewardApplicable());
         uint256 remaingTime = block.timestamp - rewardStartTime;
+        uint256 yearInSeconds = 31556926;
 
-        // rewardsDuration - remaingTime
-        // .div(rewardsDuration.div(remaingTime))
-        uint256 yearInSeconds =  31556926;
-        uint256 percentChange =   ((rewardRate.mul(rewardsDuration).mul(10000)).div(_totalSupply)).div(
-            rewardsDuration.div(rewardsDuration-remaingTime)
-        );
+        if(rewardsDuration-remaingTime==0) {
+            return 0;
+        }
+        uint256 percentChange = 0;
+        if (_totalSupply==0) {
+            percentChange =  (rewardRate.mul(rewardsDuration).mul(10000)).div(
+                rewardsDuration.div(rewardsDuration-remaingTime)
+            );
+        } else {
+            percentChange =  ((rewardRate.mul(rewardsDuration).mul(10000)).div(_totalSupply)).div(
+                rewardsDuration.div(rewardsDuration-remaingTime)
+            );
+        }
         return percentChange * yearInSeconds.div(rewardsDuration);
     }
 
