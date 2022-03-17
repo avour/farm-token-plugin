@@ -1,5 +1,8 @@
-//SPDX-License-Identifier: Unlicense
-pragma solidity ^0.6.8;
+/**
+ *Submitted for verification at Etherscan.io on 2021-02-06
+*/
+
+pragma solidity  0.8.2;
 
 
 library Address {
@@ -235,7 +238,7 @@ interface IERC20 {
 
 abstract contract Context {
     function _msgSender() internal view virtual returns (address payable) {
-        return msg.sender;
+        return payable(msg.sender);
     }
 
     function _msgData() internal view virtual returns (bytes memory) {
@@ -633,11 +636,24 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
     uint256 public stakingTokensDecimalRate;
     bool private initialised;
 
+    /// withdraw is gonna be locked till withdraw lock is finished
+    uint256 public withdrawLockPeriod ;// on month
+    uint256 public rewardStartTime;
+
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
 
     uint256 private _totalSupply;
-    mapping(address => uint256) private _balances;
+    mapping(address => Balance) private _balances;
+
+    /// @initialDepositTime time of first deposit
+    struct Balance {
+        uint256  amount;
+        uint256  initialDepositTime;
+    }
+    // APY
+    // uint256 public apy;
+
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -645,15 +661,15 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
         address _rewardsToken,
         address _stakingToken,
         uint _rewardsDuration,
+        uint _withdrawLockPeriod,
         uint _stakingTokensDecimal
     ) public  {
         stakingTokensDecimalRate = pow(10, _stakingTokensDecimal);
         rewardsToken = IERC20(_rewardsToken);
         stakingToken = IERC20(_stakingToken);
         rewardsDuration = _rewardsDuration;
+        withdrawLockPeriod = _withdrawLockPeriod;// 2629743
     }
-
-
 
     /* ========== VIEWS ========== */
 
@@ -678,7 +694,7 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
     }
 
     function balanceOf(address account) external view returns (uint256) {
-        return _balances[account];
+        return _balances[account].amount;
     }
 
     function lastTimeRewardApplicable() public view returns (uint256) {
@@ -701,7 +717,7 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
 
     function earned(address account) public view returns (uint256) {
         return
-        _balances[account]
+        _balances[account].amount
         .mul(rewardPerToken().sub(userRewardPerTokenPaid[account]))
         .div(stakingTokensDecimalRate)
         .add(rewards[account]);
@@ -725,7 +741,11 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
     {
         require(amount > 0, "Cannot stake 0");
         _totalSupply = _totalSupply.add(amount);
-        _balances[msg.sender] = _balances[msg.sender].add(amount);
+        if (_balances[msg.sender].initialDepositTime == 0) {
+            _balances[msg.sender] = Balance(_balances[msg.sender].amount.add(amount), block.timestamp);
+        } else {
+            _balances[msg.sender] = Balance(_balances[msg.sender].amount.add(amount), _balances[msg.sender].initialDepositTime);
+        }
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
         emit Staked(msg.sender, amount);
     }
@@ -736,9 +756,12 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
     updateReward(msg.sender)
     {
         require(amount > 0, "Cannot withdraw 0");
+        require(_balances[msg.sender].amount >= amount, "Not enough balance to withdraw");
+
+        require(_balances[msg.sender].initialDepositTime + withdrawLockPeriod < block.timestamp, "Withdraws are still lock");
 
         _totalSupply = _totalSupply.sub(amount);
-        _balances[msg.sender] = _balances[msg.sender].sub(amount);
+        _balances[msg.sender] = Balance(_balances[msg.sender].amount.sub(amount), _balances[msg.sender].initialDepositTime);
         stakingToken.safeTransfer(msg.sender, amount);
         emit Withdrawn(msg.sender, amount);
     }
@@ -753,7 +776,7 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
     }
 
     function exit() external {
-        withdraw(_balances[msg.sender]);
+        withdraw(_balances[msg.sender].amount);
         getReward();
     }
 
@@ -783,6 +806,7 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
         );
 
         lastUpdateTime = block.timestamp;
+        rewardStartTime = block.timestamp;
         periodFinish = block.timestamp.add(rewardsDuration);
         emit RewardAdded(reward);
     }
@@ -816,6 +840,10 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
         emit RewardsDurationUpdated(rewardsDuration);
     }
 
+    function setWithdrawLockPeriod(uint256 _period) external onlyOwner {
+        withdrawLockPeriod = _period;
+    }
+
     /* ========== MODIFIERS ========== */
 
     modifier updateReward(address account) {
@@ -828,6 +856,20 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
         _;
     }
 
+    function apy() external view returns (uint256) {
+        // uint256 remaingReward = rewardRate.mul(lastTimeRewardApplicable());
+        // uint256 remaingReward = rewardRate.mul(lastTimeRewardApplicable());
+        uint256 remaingTime = block.timestamp - rewardStartTime;
+
+        // rewardsDuration - remaingTime
+        // .div(rewardsDuration.div(remaingTime))
+        uint256 yearInSeconds =  31556926;
+        uint256 percentChange =   ((rewardRate.mul(rewardsDuration).mul(10000)).div(_totalSupply)).div(
+            rewardsDuration.div(rewardsDuration-remaingTime)
+        );
+        return percentChange * yearInSeconds.div(rewardsDuration);
+    }
+
     /* ========== EVENTS ========== */
 
     event RewardAdded(uint256 reward);
@@ -836,4 +878,5 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
     event RewardPaid(address indexed user, uint256 reward);
     event RewardsDurationUpdated(uint256 newDuration);
     event Recovered(address token, uint256 amount);
+    // event APYChanged(uint256 apy);
 }
