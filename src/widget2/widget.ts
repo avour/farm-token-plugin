@@ -387,13 +387,19 @@ class Widget {
       stakingDecimals,
       rewardsTokenSymbol,
       rewardsDecimals,
-      apy,
+      totalSupply,
+      rewardStartTime,
+      rewardRate,
+      rewardsDuration
     ] = await Promise.all([
       this.readContracts.staking.methods.symbol().call(),
       this.readContracts.staking.methods.decimals().call(),
       this.readContracts.rewards.methods.symbol().call(),
       this.readContracts.rewards.methods.decimals().call(),
-      this.readContracts.farm.methods.apy().call(),
+      this.readContracts.farm.methods.totalSupply().call(),
+      this.readContracts.farm.methods.rewardStartTime().call(),
+      this.readContracts.farm.methods.rewardRate().call(),
+      this.readContracts.farm.methods.rewardsDuration().call(),      
     ])
 
     this.state.stakingTokenSymbol = stakingTokenSymbol
@@ -434,10 +440,38 @@ class Widget {
       this.elems.tokenIcons.innerHTML = ''
     }
 
-    // APY
-    console.log(apy, "NEW apy")
-    if (apy != 0)
-      this.elems.apyValue.innerHTML = `${apy / 100}%`
+    // // APY
+    var apy = ()=> {
+      let now = Date.now() / 1000;
+      var remaingTime = now - rewardStartTime;
+      var yearInSeconds = 31556926;
+      var percentChange = 0;
+  
+      if(rewardsDuration-remaingTime < 1 ) {
+        return 0;
+      }
+      if (totalSupply < 1) {
+          percentChange =  (rewardRate * rewardsDuration * 100) / (
+              rewardsDuration / (rewardsDuration-remaingTime)
+          );
+      } else {
+          percentChange =  ((rewardRate* rewardsDuration * 100)/ totalSupply) /(
+              rewardsDuration / (rewardsDuration-remaingTime)
+          );
+      }
+      return percentChange * (yearInSeconds/rewardsDuration);   
+    };
+
+    this.elems.apyValue.innerHTML = `${Intl.NumberFormat("en-US", {}).format(apy()/1000)}%`
+
+
+    // this.readContracts.farm.methods.apy().call((err, apy) => {
+    //   console.log(apy, err);
+    //   console.log(apy, "NEW apy")
+    //   this.elems.apyValue.innerHTML = `${apy / 100}%`
+    // });
+
+    // if (apy != 0)
     // if (this.elems.apyValue) {
     // if (typeof this.opts.apy === 'function') {
     //   this.opts.apy()

@@ -23,8 +23,6 @@ var input = {
 
 var output = JSON.parse(solc.compile(JSON.stringify(input)));
 
-console.log(output);
-
 var result = {
   abi: output.contracts['Farm.sol']['Farm'].abi,
   bytecode: output.contracts['Farm.sol']['Farm'].evm.bytecode.object,
