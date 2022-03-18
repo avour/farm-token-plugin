@@ -33,7 +33,15 @@ const getHtml = ({ withAPY, withAPR, apyLabel = 'APY', aprLabel = 'APR' }) => `
         </div>
       </div>
     `}
-    ${!withAPR ? '' : `
+    
+      <div class="ff-widget-row2">
+        <div class="ff-widget-label">Withdraw Lock Time:</div>
+        <div class="ff-widget-value ff-widget-lockTime ff-widget-lock">
+          <span class="ff-skeleton"></span>
+        </div>
+      </div>
+
+      ${!withAPR ? '' : `
       <div class="ff-widget-row2">
         <div class="ff-widget-label">${aprLabel}:</div>
         <div class="ff-widget-value ff-widget-apr">
@@ -155,6 +163,7 @@ class Widget {
     rewardsTokenSymbol: HTMLDivElement
     stakingTokenSymbol: HTMLDivElement
     apyValue: HTMLDivElement
+    lockTime: HTMLDivElement
     aprValue: HTMLDivElement
     depositTokenName: HTMLDivElement
     earnTokenName: HTMLDivElement
@@ -226,6 +235,7 @@ class Widget {
     const rewardsTokenSymbol = root.querySelector('.ff-rewards-token-name') as HTMLDivElement
     const stakingTokenSymbol = root.querySelector('.ff-staking-token-name') as HTMLDivElement
     const apyValue = root.querySelector('.ff-widget-apy') as HTMLDivElement
+    const lockTime = root.querySelector('.ff-widget-lockTime') as HTMLDivElement    
     const aprValue = root.querySelector('.ff-widget-apr') as HTMLDivElement
     const depositTokenName = root.querySelector('.ff-widget-deposit-token-name') as HTMLDivElement
     const earnTokenName = root.querySelector('.ff-widget-earn-token-name') as HTMLDivElement
@@ -247,6 +257,7 @@ class Widget {
       rewardsTokenSymbol,
       stakingTokenSymbol,
       apyValue,
+      lockTime,
       aprValue,
       depositTokenName,
       earnTokenName,
@@ -390,7 +401,8 @@ class Widget {
       totalSupply,
       rewardStartTime,
       rewardRate,
-      rewardsDuration
+      rewardsDuration,
+      withdrawLockPeriod,
     ] = await Promise.all([
       this.readContracts.staking.methods.symbol().call(),
       this.readContracts.staking.methods.decimals().call(),
@@ -400,6 +412,7 @@ class Widget {
       this.readContracts.farm.methods.rewardStartTime().call(),
       this.readContracts.farm.methods.rewardRate().call(),
       this.readContracts.farm.methods.rewardsDuration().call(),      
+      this.readContracts.farm.methods.withdrawLockPeriod().call(),
     ])
 
     this.state.stakingTokenSymbol = stakingTokenSymbol
@@ -450,10 +463,8 @@ class Widget {
       if(rewardsDuration-remaingTime < 1 ) {
         return 0;
       }
-      if (totalSupply < 1) {
-          percentChange =  (rewardRate * rewardsDuration * 100) / (
-              rewardsDuration / (rewardsDuration-remaingTime)
-          );
+      if (totalSupply == 0) {
+        return 100;
       } else {
           percentChange =  ((rewardRate* rewardsDuration * 100)/ totalSupply) /(
               rewardsDuration / (rewardsDuration-remaingTime)
@@ -462,30 +473,12 @@ class Widget {
       return percentChange * (yearInSeconds/rewardsDuration);   
     };
 
-    this.elems.apyValue.innerHTML = `${Intl.NumberFormat("en-US", {}).format(apy()/1000)}%`
+    this.elems.apyValue.innerHTML = `${Intl.NumberFormat("en-US", {}).format(apy())}%`
+    // new Date(withdrawLockPeriod*1000)
+    this.elems.lockTime.innerHTML = `${withdrawLockPeriod/86400} days after initial deposit`
 
-
-    // this.readContracts.farm.methods.apy().call((err, apy) => {
-    //   console.log(apy, err);
-    //   console.log(apy, "NEW apy")
-    //   this.elems.apyValue.innerHTML = `${apy / 100}%`
-    // });
-
-    // if (apy != 0)
-    // if (this.elems.apyValue) {
-    // if (typeof this.opts.apy === 'function') {
-    //   this.opts.apy()
-    //     .then((value) => {
-    //       this.elems.apyValue.innerHTML = `${value}%`
-    //     })
-    // }
-    // else {
-    //   this.elems.apyValue.innerHTML = `${this.opts.apy}%`
-    // }
-    // }
 
     // APR
-
     if (this.elems.aprValue) {
       if (typeof this.opts.apr === 'function') {
         this.opts.apr()
