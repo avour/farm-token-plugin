@@ -457,7 +457,7 @@ class Widget {
     var apy = ()=> {
       let now = Date.now() / 1000;
       var remaingTime = now - rewardStartTime;
-      var yearInSeconds = 31556926;
+      // var yearInSeconds = 31556926;
       var percentChange = 0;
   
       if(rewardsDuration-remaingTime < 1 ) {
@@ -470,15 +470,17 @@ class Widget {
               rewardsDuration / (rewardsDuration-remaingTime)
           );
       }
-      return percentChange * (yearInSeconds/rewardsDuration);   
+      return percentChange //* (yearInSeconds/rewardsDuration);   
     };
-
-    this.elems.apyValue.innerHTML = `${Intl.NumberFormat("en-US", {}).format(apy())}%`
+    const dayInSeconds = 86400
+    this.elems.apyValue.innerHTML = `${Intl.NumberFormat("en-US", {}).format(apy())}`.split('.')[0]+`% (${parseInt(`${rewardsDuration/dayInSeconds}`)} day APY)`
     // new Date(withdrawLockPeriod*1000)
-    this.elems.lockTime.innerHTML = `${withdrawLockPeriod/86400} days after initial deposit`
+    var days =parseInt(`${withdrawLockPeriod/dayInSeconds}`)
+    this.elems.lockTime.innerHTML = `${days} days after initial deposit`
 
 
     // APR
+    
     if (this.elems.aprValue) {
       if (typeof this.opts.apr === 'function') {
         this.opts.apr()

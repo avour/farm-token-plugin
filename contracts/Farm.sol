@@ -637,14 +637,17 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
     bool private initialised;
 
     /// withdraw is gonna be locked till withdraw lock is finished
-    uint256 public withdrawLockPeriod ;// on month
+    uint256 public withdrawLockPeriod;
     uint256 public rewardStartTime;
+    uint256 public havestLockPeriod;
+    uint256 public minimumStakeAmount;
+
 
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
 
     uint256 private _totalSupply;
-    mapping(address => Balance) private _balances;
+    mapping(address => Balance) public balances;
 
     /// @initialDepositTime time of first deposit
     struct Balance {
@@ -662,13 +665,17 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
         address _stakingToken,
         uint _rewardsDuration,
         uint _withdrawLockPeriod,
-        uint _stakingTokensDecimal
+        uint _stakingTokensDecimal,
+        uint _havestLockPeriod,
+        uint _minimumStakeAmount
     ) public  {
         stakingTokensDecimalRate = pow(10, _stakingTokensDecimal);
         rewardsToken = IERC20(_rewardsToken);
         stakingToken = IERC20(_stakingToken);
         rewardsDuration = _rewardsDuration;
         withdrawLockPeriod = _withdrawLockPeriod;// 2629743
+        havestLockPeriod = _havestLockPeriod;
+        minimumStakeAmount = _minimumStakeAmount;
     }
 
     /* ========== VIEWS ========== */
@@ -678,7 +685,6 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
     }
 
     function pow(uint n, uint e) public pure returns (uint) {
-
         if (e == 0) {
             return 1;
         } else if (e == 1) {
@@ -694,7 +700,7 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
     }
 
     function balanceOf(address account) external view returns (uint256) {
-        return _balances[account].amount;
+        return balances[account].amount;
     }
 
     function lastTimeRewardApplicable() public view returns (uint256) {
@@ -717,7 +723,7 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
 
     function earned(address account) public view returns (uint256) {
         return
-        _balances[account].amount
+        balances[account].amount
         .mul(rewardPerToken().sub(userRewardPerTokenPaid[account]))
         .div(stakingTokensDecimalRate)
         .add(rewards[account]);
@@ -739,12 +745,14 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
     whenNotPaused
     updateReward(msg.sender)
     {
+        
         require(amount > 0, "Cannot stake 0");
+        require(amount >= minimumStakeAmount, "Amount does not exceed minimum stake amount");
         _totalSupply = _totalSupply.add(amount);
-        if (_balances[msg.sender].initialDepositTime == 0) {
-            _balances[msg.sender] = Balance(_balances[msg.sender].amount.add(amount), block.timestamp);
+        if (balances[msg.sender].initialDepositTime == 0) {
+            balances[msg.sender] = Balance(balances[msg.sender].amount.add(amount), block.timestamp);
         } else {
-            _balances[msg.sender] = Balance(_balances[msg.sender].amount.add(amount), _balances[msg.sender].initialDepositTime);
+            balances[msg.sender] = Balance(balances[msg.sender].amount.add(amount), balances[msg.sender].initialDepositTime);
         }
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
         emit Staked(msg.sender, amount);
@@ -756,17 +764,21 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
     updateReward(msg.sender)
     {
         require(amount > 0, "Cannot withdraw 0");
-        require(_balances[msg.sender].amount >= amount, "Not enough balance to withdraw");
-
-        require(_balances[msg.sender].initialDepositTime + withdrawLockPeriod < block.timestamp, "Withdraws are still lock");
+        require(balances[msg.sender].amount >= amount, "Not enough balance to withdraw");
+        
+        if (block.timestamp < rewardStartTime + rewardsDuration) {
+            require(balances[msg.sender].initialDepositTime + withdrawLockPeriod < block.timestamp, "Withdraws are still locked");
+        }
 
         _totalSupply = _totalSupply.sub(amount);
-        _balances[msg.sender] = Balance(_balances[msg.sender].amount.sub(amount), _balances[msg.sender].initialDepositTime);
+        balances[msg.sender] = Balance(balances[msg.sender].amount.sub(amount), balances[msg.sender].initialDepositTime);
         stakingToken.safeTransfer(msg.sender, amount);
         emit Withdrawn(msg.sender, amount);
     }
 
     function getReward() public nonReentrant updateReward(msg.sender) {
+        require(balances[msg.sender].initialDepositTime + havestLockPeriod < block.timestamp, "Rewards are locked");
+
         uint256 reward = rewards[msg.sender];
         if (reward > 0) {
             rewards[msg.sender] = 0;
@@ -776,7 +788,7 @@ contract Farm is ReentrancyGuard, Pausable, Ownable {
     }
 
     function exit() external {
-        withdraw(_balances[msg.sender].amount);
+        withdraw(balances[msg.sender].amount);
         getReward();
     }
 
